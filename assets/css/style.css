@@ -1,0 +1,147 @@
+:root {
+    /* Paleta Profesional GesDoc */
+    --primary-blue: #0A4275;
+    --secondary-blue: #1A5F9A;
+    --accent-blue: #0d6efd;
+    --light-blue: #e8f0fe;
+    
+    --white: #ffffff;
+    --bg-light: #f4f6f9; /* Fondo muy tenue para contrastar con los contenedores blancos */
+    
+    --text-main: #333333;
+    --text-muted: #6c757d;
+    
+    --border-color: #dee2e6;
+    --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+    --shadow-md: 0 .5rem 1rem rgba(0,0,0,.15);
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.9rem; /* Fuente base más pequeña para todo el sistema */
+}
+
+/* Tipografía */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-blue);
+    font-weight: 600;
+}
+
+/* Tarjetas y Contenedores Blancos */
+.card {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--primary-blue);
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+/* Botones */
+.btn-primary {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    transition: all 0.2s;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--secondary-blue);
+    border-color: var(--secondary-blue);
+    box-shadow: 0 4px 8px rgba(10, 66, 117, 0.2);
+}
+
+.btn-outline-primary {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}
+
+/* Navbar */
+.navbar-gesdoc {
+    background-color: var(--white);
+    box-shadow: var(--shadow-sm);
+    border-bottom: 2px solid var(--primary-blue);
+}
+
+.navbar-gesdoc .navbar-brand {
+    color: var(--primary-blue);
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.navbar-gesdoc .nav-link {
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.navbar-gesdoc .nav-link:hover, .navbar-gesdoc .nav-link.active {
+    color: var(--primary-blue);
+}
+
+/* Inputs y Formularios */
+.form-control:focus, .form-select:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Tablas DataTables */
+table.dataTable {
+    font-size: 0.85rem; /* Tablas aún más compactas */
+}
+
+table.dataTable.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: rgba(10, 66, 117, 0.02); /* Azul muy sutil */
+}
+
+table.dataTable > thead > tr > th {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-bottom: none;
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+/* Login específico */
+.login-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 450px;
+    padding: 2rem;
+    border-top: 4px solid var(--primary-blue);
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-logo i {
+    font-size: 3rem;
+    color: var(--primary-blue);
+}

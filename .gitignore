@@ -1,0 +1,36 @@
+# ─── Configuración sensible ────────────────────────────────────────────────
+config.php
+
+# ─── Almacenamiento externo (nunca en el repo) ──────────────────────────────
+gesdoc_storage/
+storage/
+
+# ─── Logs y errores de PHP/Apache ───────────────────────────────────────────
+*.log
+error_log
+php_errorlog
+
+# ─── Scripts temporales de mantenimiento ─────────────────────────────────────
+fix_*.php
+patch_*.php
+test_*.php
+
+# ─── Archivos del sistema operativo ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDEs y editores ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Node (por si se usa npm a futuro) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ─── Composer (por si se agregan dependencias PHP a futuro) ─────────────────
+vendor/
+composer.lock
