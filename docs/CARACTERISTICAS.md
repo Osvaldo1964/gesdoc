@@ -1,5 +1,5 @@
 # GesDoc — Documentación del Sistema
-**Versión:** 1.0.1 | **Última actualización:** Mayo 2026
+**Versión:** 1.0.1 | **Última actualización:** Mayo 2026 | **Commit:** `d3ba174`
 
 ---
 
@@ -285,7 +285,81 @@ define('BASE_URL',             'http://localhost/gesdoc');
 
 ---
 
-## 10. Hoja de Ruta — Próximas Funcionalidades
+## 10. Control de Versiones (Git)
+
+### Estado actual
+El repositorio fue inicializado el **5 de Mayo de 2026** con el commit inicial:
+```
+d3ba174 feat: Initial commit GesDoc v1.0.1
+```
+
+### Archivos clave de configuración Git
+
+| Archivo | Propósito |
+|---|---|
+| `.gitignore` | Excluye `config.php`, logs, archivos temporales e IDE |
+| `config.example.php` | Plantilla de configuración para nuevos entornos (sin credenciales reales) |
+| `README.md` | Presentación del proyecto e instrucciones de instalación |
+
+### Archivos NUNCA en el repositorio
+- `config.php` ← contiene JWT_SECRET, credenciales de BD y SMTP
+- Scripts temporales `fix_*.php`, `patch_*.php`
+- Directorio de almacenamiento (`D:\gesdoc_storage`)
+
+### Conectar a un repositorio remoto (GitHub/GitLab)
+```bash
+git remote add origin https://github.com/tu-usuario/gesdoc.git
+git branch -M main
+git push -u origin main
+```
+
+### Flujo de trabajo para cambios futuros
+```bash
+# 1. Hacer los cambios en el código
+# 2. Revisar qué cambió
+git status
+git diff
+
+# 3. Agregar los archivos modificados
+git add .
+
+# 4. Hacer commit con mensaje descriptivo
+git commit -m "tipo: descripción del cambio"
+
+# 5. Subir al repositorio remoto
+git push
+```
+
+### Convención de mensajes de commit
+| Prefijo | Uso |
+|---|---|
+| `feat:` | Nueva funcionalidad |
+| `fix:` | Corrección de error |
+| `refactor:` | Cambio de código sin nueva funcionalidad |
+| `docs:` | Solo cambios en documentación |
+| `style:` | Cambios visuales / CSS |
+| `chore:` | Tareas de mantenimiento (versiones, configuración) |
+
+### Despliegue en producción (Hostinger)
+```bash
+# Clonar el repo en el servidor
+git clone https://github.com/tu-usuario/gesdoc.git public_html/gesdoc
+
+# Copiar y configurar el archivo de entorno
+cp config.example.php config.php
+nano config.php  # editar con datos reales del servidor
+
+# Crear el directorio de storage fuera del public_html
+mkdir -p ~/gesdoc_storage
+chmod 755 ~/gesdoc_storage
+
+# Importar la base de datos
+mysql -u usuario -p nombre_bd < database.sql
+```
+
+---
+
+## 11. Hoja de Ruta — Próximas Funcionalidades
 
 - [ ] **Alertas de vencimiento RUT/RUP:** Notificación automática cuando la fecha de actualización del RUT o RUP de una empresa está próxima a vencer (dashboard + correo).
 - [ ] **Módulo de Reportes:** Exportación a Excel/PDF de resultados de búsqueda.
