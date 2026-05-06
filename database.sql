@@ -63,6 +63,7 @@ CREATE TABLE documents (
     folder_id INT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    keywords TEXT NULL,          -- Palabras clave separadas por comas para optimizar búsquedas
     status ENUM('Borrador', 'En Revisión', 'Aprobado', 'Archivado') DEFAULT 'Borrador',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

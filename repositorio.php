@@ -221,6 +221,18 @@ $userRole = $userData['user_role'];
                   <label class="form-label fw-bold">Descripción <small class="text-muted fw-normal">(opcional)</small></label>
                   <textarea class="form-control" name="description" id="uDesc" rows="2" placeholder="Breve descripción del documento..."></textarea>
               </div>
+
+              <div class="mb-2">
+                  <label class="form-label fw-bold">
+                      Palabras Clave
+                      <small class="text-muted fw-normal">(separadas por coma)</small>
+                  </label>
+                  <input type="text" class="form-control" name="keywords" id="uKeywords"
+                         placeholder="Ej: contrato, licitación, obra civil, 2024"
+                         oninput="renderKeywordPreview(this.value)">
+                  <div id="keywordPreview" class="mt-2 d-flex flex-wrap gap-1"></div>
+                  <small class="text-muted">Las palabras clave mejoran la búsqueda en el módulo de Licitaciones.</small>
+              </div>
           </div>
           <div class="modal-footer bg-light border-0">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -299,6 +311,11 @@ $(document).ready(function() {
     });
     document.getElementById('fileInput').addEventListener('change', function() {
         document.getElementById('selectedFileName').textContent = this.files[0]?.name || '';
+    });
+
+    // Limpiar preview de keywords al cerrar el modal
+    document.getElementById('uploadModal').addEventListener('hidden.bs.modal', function() {
+        $('#keywordPreview').empty();
     });
 
     // Cambio de entidad combinada
@@ -512,6 +529,7 @@ function initDocsTable() {
 function openUploadModal(docId, docName) {
     $('#uploadForm')[0].reset();
     $('#selectedFileName').text('');
+    $('#keywordPreview').empty();
     $('#uDocId').val('');
     $('#uFolder').val(currentFolderId || '');
     $('#entitySection').show();
@@ -530,6 +548,23 @@ function newVersion(docId, docName) {
 
 function downloadDoc(id) {
     window.open(`api/repositorio.php?action=download&id=${id}`, '_blank');
+}
+
+// ── Preview de palabras clave como badges ─────────────────────────────────────
+function renderKeywordPreview(value) {
+    const $preview = $('#keywordPreview');
+    $preview.empty();
+    if (!value.trim()) return;
+    value.split(',').forEach(function(kw) {
+        const tag = kw.trim();
+        if (tag) {
+            $preview.append(
+                `<span class="badge" style="background:var(--light-blue);color:var(--primary-blue);font-weight:500;">
+                    <i class="fa-solid fa-tag me-1" style="font-size:0.7rem;"></i>${tag}
+                 </span>`
+            );
+        }
+    });
 }
 
 function deleteDoc(id) {

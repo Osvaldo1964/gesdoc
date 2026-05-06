@@ -92,6 +92,7 @@ try {
         case 'upload':
             $folder_id   = filter_input(INPUT_POST, 'folder_id', FILTER_SANITIZE_NUMBER_INT) ?: null;
             $description = trim(filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING));
+            $keywords    = trim(filter_input(INPUT_POST, 'keywords',    FILTER_SANITIZE_STRING));
             $status      = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING) ?: 'Borrador';
             $entity_type = filter_input(INPUT_POST, 'entity_type', FILTER_SANITIZE_STRING) ?: null;
             $entity_id   = filter_input(INPUT_POST, 'entity_id', FILTER_SANITIZE_NUMBER_INT) ?: null;
@@ -115,12 +116,12 @@ try {
                 $stmt->execute([$doc_id]);
                 $last  = $stmt->fetchColumn() ?: 1.0;
                 $ver   = 'v' . number_format($last + 0.1, 1);
-                $pdo->prepare("UPDATE documents SET description=?, status=?, updated_at=NOW() WHERE id=?")->execute([$description, $status, $doc_id]);
+                $pdo->prepare("UPDATE documents SET description=?, keywords=?, status=?, updated_at=NOW() WHERE id=?")->execute([$description, $keywords ?: null, $status, $doc_id]);
             } else {
                 // Documento nuevo
                 $docName = strtoupper(pathinfo($origName, PATHINFO_FILENAME));
-                $stmt    = $pdo->prepare("INSERT INTO documents (folder_id, name, description, status) VALUES (?,?,?,?)");
-                $stmt->execute([$folder_id, $docName, $description, $status]);
+                $stmt    = $pdo->prepare("INSERT INTO documents (folder_id, name, description, keywords, status) VALUES (?,?,?,?,?)");
+                $stmt->execute([$folder_id, $docName, $description, $keywords ?: null, $status]);
                 $doc_id  = $pdo->lastInsertId();
                 $ver     = 'v1.0';
 

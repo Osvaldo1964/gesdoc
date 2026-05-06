@@ -93,9 +93,9 @@ try {
 
             // Filtro por texto libre
             if ($keyword !== '') {
-                $conditions[] = "(d.name LIKE ? OR d.description LIKE ? OR co.name LIKE ? OR cs.name LIKE ?)";
+                $conditions[] = "(d.name LIKE ? OR d.description LIKE ? OR d.keywords LIKE ? OR co.name LIKE ? OR cs.name LIKE ?)";
                 $like = "%$keyword%";
-                $params = array_merge($params, [$like, $like, $like, $like]);
+                $params = array_merge($params, [$like, $like, $like, $like, $like]);
             }
 
             // Filtro por empresa (directo + indirecto vía consorcios)
