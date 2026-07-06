@@ -1,20 +1,12 @@
 <?php
-require_once '../config.php';
-require_once '../jwt_helper.php';
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ob_start();
 
+require_once 'auth_helper.php';
+
+ob_clean();
 header('Content-Type: application/json');
-
-function getValidUser() {
-    $headers = apache_request_headers();
-    $jwt = null;
-    if (isset($headers['Authorization'])) {
-        preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches);
-        if (isset($matches[1])) $jwt = $matches[1];
-    }
-    if (!$jwt && isset($_COOKIE['gesdoc_token'])) $jwt = $_COOKIE['gesdoc_token'];
-    if (!$jwt) return false;
-    return JWT::decode($jwt, JWT_SECRET);
-}
 
 $user = getValidUser();
 if (!$user) {
@@ -23,7 +15,13 @@ if (!$user) {
     exit;
 }
 
+$userId = (int) $user['user_id'];
 $action = $_REQUEST['action'] ?? '';
+
+// Valores permitidos para el campo status
+$validStatuses = ['Borrador', 'En Revisión', 'Aprobado', 'Archivado'];
+// Valores permitidos para entity_type
+$validEntityTypes = ['Company', 'Consortium'];
 
 try {
     switch ($action) {
@@ -36,17 +34,20 @@ try {
             break;
 
         case 'create_folder':
-            $name      = strtoupper(trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING)));
+            $name      = strtoupper(trim(htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8')));
             $parent_id = filter_input(INPUT_POST, 'parent_id', FILTER_SANITIZE_NUMBER_INT) ?: null;
             if (empty($name)) { echo json_encode(['success'=>false,'message'=>'El nombre es requerido.']); exit; }
             $pdo->prepare("INSERT INTO folders (name, parent_id) VALUES (?,?)")->execute([$name, $parent_id]);
-            echo json_encode(['success'=>true, 'message'=>'Carpeta creada.', 'id'=>$pdo->lastInsertId()]);
+            $folderId = $pdo->lastInsertId();
+            logAudit($pdo, $userId, 'carpeta.create', "ID: $folderId | Nombre: $name");
+            echo json_encode(['success'=>true, 'message'=>'Carpeta creada.', 'id'=>$folderId]);
             break;
 
         case 'rename_folder':
-            $id   = filter_input(INPUT_POST, 'id',   FILTER_SANITIZE_NUMBER_INT);
-            $name = strtoupper(trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING)));
+            $id   = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+            $name = strtoupper(trim(htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8')));
             $pdo->prepare("UPDATE folders SET name=? WHERE id=?")->execute([$name, $id]);
+            logAudit($pdo, $userId, 'carpeta.rename', "ID: $id | Nuevo nombre: $name");
             echo json_encode(['success'=>true, 'message'=>'Carpeta renombrada.']);
             break;
 
@@ -54,6 +55,7 @@ try {
             $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
             // Los documentos dentro se eliminan por CASCADE
             $pdo->prepare("DELETE FROM folders WHERE id=?")->execute([$id]);
+            logAudit($pdo, $userId, 'carpeta.delete', "ID: $id");
             echo json_encode(['success'=>true, 'message'=>'Carpeta eliminada.']);
             break;
 
@@ -73,7 +75,6 @@ try {
             ");
             $stmt->execute([$folder_id]);
             $docs = $stmt->fetchAll();
-            // Agregar entidades vinculadas
             foreach ($docs as &$doc) {
                 $stmtA = $pdo->prepare("
                     SELECT da.entity_type, da.entity_id,
@@ -91,12 +92,14 @@ try {
 
         case 'upload':
             $folder_id   = filter_input(INPUT_POST, 'folder_id', FILTER_SANITIZE_NUMBER_INT) ?: null;
-            $description = trim(filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING));
-            $keywords    = trim(filter_input(INPUT_POST, 'keywords',    FILTER_SANITIZE_STRING));
-            $status      = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING) ?: 'Borrador';
-            $entity_type = filter_input(INPUT_POST, 'entity_type', FILTER_SANITIZE_STRING) ?: null;
+            $description = trim(htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES, 'UTF-8'));
+            $keywords    = trim(htmlspecialchars($_POST['keywords'] ?? '', ENT_QUOTES, 'UTF-8'));
+            $statusRaw   = $_POST['status'] ?? 'Borrador';
+            $status      = in_array($statusRaw, $validStatuses) ? $statusRaw : 'Borrador';
+            $entityTypeRaw = $_POST['entity_type'] ?? null;
+            $entity_type = ($entityTypeRaw && in_array($entityTypeRaw, $validEntityTypes)) ? $entityTypeRaw : null;
             $entity_id   = filter_input(INPUT_POST, 'entity_id', FILTER_SANITIZE_NUMBER_INT) ?: null;
-            $doc_id      = filter_input(INPUT_POST, 'doc_id', FILTER_SANITIZE_NUMBER_INT) ?: null; // Para nueva versión
+            $doc_id      = filter_input(INPUT_POST, 'doc_id', FILTER_SANITIZE_NUMBER_INT) ?: null;
 
             if (empty($_FILES['file'])) { echo json_encode(['success'=>false,'message'=>'No se recibió ningún archivo.']); exit; }
 
@@ -104,7 +107,6 @@ try {
             $origName = basename($file['name']);
             $ext      = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
 
-            // Tipos permitidos
             $allowed = ['pdf','doc','docx','xls','xlsx','ppt','pptx','jpg','jpeg','png','gif','zip','rar','txt','csv'];
             if (!in_array($ext, $allowed)) { echo json_encode(['success'=>false,'message'=>"Tipo de archivo .$ext no permitido."]); exit; }
 
@@ -125,12 +127,10 @@ try {
                 $doc_id  = $pdo->lastInsertId();
                 $ver     = 'v1.0';
 
-                // Asignación polimórfica
                 if ($entity_type && $entity_id) {
                     $pdo->prepare("INSERT INTO document_assignments (document_id, entity_type, entity_id) VALUES (?,?,?)")
                         ->execute([$doc_id, $entity_type, $entity_id]);
 
-                    // Si es Consorcio → también vinculamos sus empresas miembro implícitamente (queda en assignments)
                     if ($entity_type === 'Consortium') {
                         $members = $pdo->prepare("SELECT company_id FROM consortium_members WHERE consortium_id=?");
                         $members->execute([$entity_id]);
@@ -151,11 +151,12 @@ try {
                 exit;
             }
 
-            // Registrar versión
+            // Registrar versión con el usuario real del JWT
             $pdo->prepare("INSERT INTO document_versions (document_id, version, file_path, file_size, uploaded_by) VALUES (?,?,?,?,?)")
-                ->execute([$doc_id, $ver, $destPath, $file['size'], 1]);
+                ->execute([$doc_id, $ver, $destPath, $file['size'], $userId]);
 
             $pdo->commit();
+            logAudit($pdo, $userId, 'documento.upload', "DocID: $doc_id | Versión: $ver | Archivo: $origName");
             echo json_encode(['success'=>true, 'message'=>"Archivo subido como $ver."]);
             break;
 
@@ -178,19 +179,19 @@ try {
 
         case 'delete_doc':
             $doc_id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-            // Obtener rutas físicas para borrar
             $vers = $pdo->prepare("SELECT file_path FROM document_versions WHERE document_id=?");
             $vers->execute([$doc_id]);
             foreach ($vers->fetchAll() as $v) {
                 if (file_exists($v['file_path'])) @unlink($v['file_path']);
             }
             $pdo->prepare("DELETE FROM documents WHERE id=?")->execute([$doc_id]);
+            logAudit($pdo, $userId, 'documento.delete', "DocID: $doc_id");
             echo json_encode(['success'=>true,'message'=>'Documento eliminado.']);
             break;
 
         case 'get_entities':
-            $companies    = $pdo->query("SELECT id, name, 'Company' AS type FROM companies ORDER BY name")->fetchAll();
-            $consortiums  = $pdo->query("SELECT id, name, 'Consortium' AS type FROM consortiums ORDER BY name")->fetchAll();
+            $companies   = $pdo->query("SELECT id, name, 'Company' AS type FROM companies ORDER BY name")->fetchAll();
+            $consortiums = $pdo->query("SELECT id, name, 'Consortium' AS type FROM consortiums ORDER BY name")->fetchAll();
             echo json_encode(['data' => array_merge($companies, $consortiums)]);
             break;
 
@@ -204,15 +205,16 @@ try {
 }
 
 // ─── Helper: árbol jerárquico ──────────────────────────────────────────────
-function buildTree(array $items, $parentId = null) {
+function buildTree(array $items, $parentId = null): array {
     $branch = [];
     foreach ($items as $item) {
         if ($item['parent_id'] == $parentId) {
             $children = buildTree($items, $item['id']);
-            if ($children) $item['children'] = $children;
+            if ($children) {
+                $item['children'] = $children;
+            }
             $branch[] = $item;
         }
     }
     return $branch;
 }
-?>

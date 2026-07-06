@@ -1,30 +1,12 @@
 <?php
-require_once '../config.php';
-require_once '../jwt_helper.php';
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ob_start();
 
+require_once 'auth_helper.php';
+
+ob_clean();
 header('Content-Type: application/json');
-
-// Función para obtener y validar el JWT
-function getValidUser() {
-    $headers = apache_request_headers();
-    $jwt = null;
-    if (isset($headers['Authorization'])) {
-        $matches = array();
-        preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches);
-        if (isset($matches[1])) {
-            $jwt = $matches[1];
-        }
-    }
-    
-    // Fallback a Cookie si no hay header
-    if (!$jwt && isset($_COOKIE['gesdoc_token'])) {
-        $jwt = $_COOKIE['gesdoc_token'];
-    }
-
-    if (!$jwt) return false;
-
-    return JWT::decode($jwt, JWT_SECRET);
-}
 
 $user = getValidUser();
 if (!$user) {
@@ -33,6 +15,7 @@ if (!$user) {
     exit;
 }
 
+$userId = (int) $user['user_id'];
 $action = $_REQUEST['action'] ?? '';
 
 try {
@@ -40,22 +23,21 @@ try {
         case 'list':
             $stmt = $pdo->query("SELECT * FROM companies ORDER BY name ASC");
             $companies = $stmt->fetchAll();
-            echo json_encode(['data' => $companies]); // Formato requerido por DataTables
+            echo json_encode(['data' => $companies]);
             break;
 
         case 'create':
-            $name = strtoupper(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING));
-            $nit = filter_input(INPUT_POST, 'nit', FILTER_SANITIZE_STRING);
-            $legal_representative = strtoupper(filter_input(INPUT_POST, 'legal_representative', FILTER_SANITIZE_STRING));
-            $rut_updated_at = !empty($_POST['rut_updated_at']) ? $_POST['rut_updated_at'] : null;
-            $rup_updated_at = !empty($_POST['rup_updated_at']) ? $_POST['rup_updated_at'] : null;
-            
+            $name                = strtoupper(trim(htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8')));
+            $nit                 = trim(htmlspecialchars($_POST['nit'] ?? '', ENT_QUOTES, 'UTF-8'));
+            $legal_representative = strtoupper(trim(htmlspecialchars($_POST['legal_representative'] ?? '', ENT_QUOTES, 'UTF-8')));
+            $rut_updated_at      = !empty($_POST['rut_updated_at']) ? $_POST['rut_updated_at'] : null;
+            $rup_updated_at      = !empty($_POST['rup_updated_at']) ? $_POST['rup_updated_at'] : null;
+
             if (empty($name) || empty($nit)) {
                 echo json_encode(['success' => false, 'message' => 'Nombre y NIT son requeridos.']);
                 exit;
             }
-            
-            // Verificar si el NIT ya existe
+
             $check = $pdo->prepare("SELECT id FROM companies WHERE nit = ?");
             $check->execute([$nit]);
             if ($check->rowCount() > 0) {
@@ -65,6 +47,8 @@ try {
 
             $stmt = $pdo->prepare("INSERT INTO companies (name, nit, legal_representative, rut_updated_at, rup_updated_at) VALUES (?, ?, ?, ?, ?)");
             if ($stmt->execute([$name, $nit, $legal_representative, $rut_updated_at, $rup_updated_at])) {
+                $newId = $pdo->lastInsertId();
+                logAudit($pdo, $userId, 'empresa.create', "ID: $newId | NIT: $nit | Nombre: $name");
                 echo json_encode(['success' => true, 'message' => 'Empresa creada exitosamente.']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Error al crear la empresa.']);
@@ -72,19 +56,18 @@ try {
             break;
 
         case 'update':
-            $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-            $name = strtoupper(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING));
-            $nit = filter_input(INPUT_POST, 'nit', FILTER_SANITIZE_STRING);
-            $legal_representative = strtoupper(filter_input(INPUT_POST, 'legal_representative', FILTER_SANITIZE_STRING));
-            $rut_updated_at = !empty($_POST['rut_updated_at']) ? $_POST['rut_updated_at'] : null;
-            $rup_updated_at = !empty($_POST['rup_updated_at']) ? $_POST['rup_updated_at'] : null;
-            
+            $id                  = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+            $name                = strtoupper(trim(htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8')));
+            $nit                 = trim(htmlspecialchars($_POST['nit'] ?? '', ENT_QUOTES, 'UTF-8'));
+            $legal_representative = strtoupper(trim(htmlspecialchars($_POST['legal_representative'] ?? '', ENT_QUOTES, 'UTF-8')));
+            $rut_updated_at      = !empty($_POST['rut_updated_at']) ? $_POST['rut_updated_at'] : null;
+            $rup_updated_at      = !empty($_POST['rup_updated_at']) ? $_POST['rup_updated_at'] : null;
+
             if (empty($id) || empty($name) || empty($nit)) {
                 echo json_encode(['success' => false, 'message' => 'Faltan datos obligatorios.']);
                 exit;
             }
-            
-            // Verificar NIT duplicado
+
             $check = $pdo->prepare("SELECT id FROM companies WHERE nit = ? AND id != ?");
             $check->execute([$nit, $id]);
             if ($check->rowCount() > 0) {
@@ -94,6 +77,7 @@ try {
 
             $stmt = $pdo->prepare("UPDATE companies SET name = ?, nit = ?, legal_representative = ?, rut_updated_at = ?, rup_updated_at = ? WHERE id = ?");
             if ($stmt->execute([$name, $nit, $legal_representative, $rut_updated_at, $rup_updated_at, $id])) {
+                logAudit($pdo, $userId, 'empresa.update', "ID: $id | NIT: $nit | Nombre: $name");
                 echo json_encode(['success' => true, 'message' => 'Empresa actualizada exitosamente.']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Error al actualizar la empresa.']);
@@ -107,9 +91,6 @@ try {
                 exit;
             }
 
-            // Aquí se debería validar si la empresa pertenece a algún consorcio antes de borrar
-            // O si tiene documentos asociados, aunque tenemos ON DELETE CASCADE.
-            // Para mayor seguridad en producción, mejor restringir el borrado si hay dependencias.
             $check = $pdo->prepare("SELECT consortium_id FROM consortium_members WHERE company_id = ?");
             $check->execute([$id]);
             if ($check->rowCount() > 0) {
@@ -119,18 +100,86 @@ try {
 
             $stmt = $pdo->prepare("DELETE FROM companies WHERE id = ?");
             if ($stmt->execute([$id])) {
+                logAudit($pdo, $userId, 'empresa.delete', "ID: $id");
                 echo json_encode(['success' => true, 'message' => 'Empresa eliminada exitosamente.']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Error al eliminar la empresa.']);
             }
             break;
 
+        // ── ESTADOS FINANCIEROS ──────────────────────────────────
+        case 'ef_list':
+            $company_id = filter_input(INPUT_GET, 'company_id', FILTER_SANITIZE_NUMBER_INT);
+            if (empty($company_id)) { echo json_encode(['data' => []]); exit; }
+            $stmt = $pdo->prepare("SELECT * FROM empresa_estados_financieros WHERE company_id = ? ORDER BY periodo DESC");
+            $stmt->execute([$company_id]);
+            echo json_encode(['data' => $stmt->fetchAll()]);
+            break;
+
+        case 'ef_save':
+            // Crea o actualiza (upsert) el estado financiero de un año
+            $company_id           = filter_input(INPUT_POST, 'company_id', FILTER_SANITIZE_NUMBER_INT);
+            $periodo              = filter_input(INPUT_POST, 'periodo', FILTER_SANITIZE_NUMBER_INT);
+
+            if (empty($company_id) || empty($periodo)) {
+                echo json_encode(['success' => false, 'message' => 'Empresa y período son requeridos.']);
+                exit;
+            }
+
+            $activo_corriente         = (float)($_POST['activo_corriente']         ?? 0);
+            $activo_no_corriente      = (float)($_POST['activo_no_corriente']      ?? 0);
+            $total_activos            = (float)($_POST['total_activos']            ?? 0);
+            $pasivo_corriente         = (float)($_POST['pasivo_corriente']         ?? 0);
+            $pasivo_no_corriente      = (float)($_POST['pasivo_no_corriente']      ?? 0);
+            $total_pasivos            = (float)($_POST['total_pasivos']            ?? 0);
+            $patrimonio               = (float)($_POST['patrimonio']               ?? 0);
+            $ingresos_operacionales   = (float)($_POST['ingresos_operacionales']   ?? 0);
+            $utilidad_neta            = (float)($_POST['utilidad_neta']            ?? 0);
+
+            $pdo->prepare("
+                INSERT INTO empresa_estados_financieros
+                    (company_id, periodo, activo_corriente, activo_no_corriente, total_activos,
+                     pasivo_corriente, pasivo_no_corriente, total_pasivos, patrimonio,
+                     ingresos_operacionales, utilidad_neta)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE
+                    activo_corriente=VALUES(activo_corriente),
+                    activo_no_corriente=VALUES(activo_no_corriente),
+                    total_activos=VALUES(total_activos),
+                    pasivo_corriente=VALUES(pasivo_corriente),
+                    pasivo_no_corriente=VALUES(pasivo_no_corriente),
+                    total_pasivos=VALUES(total_pasivos),
+                    patrimonio=VALUES(patrimonio),
+                    ingresos_operacionales=VALUES(ingresos_operacionales),
+                    utilidad_neta=VALUES(utilidad_neta),
+                    updated_at=NOW()
+            ")->execute([
+                $company_id, $periodo,
+                $activo_corriente, $activo_no_corriente, $total_activos,
+                $pasivo_corriente, $pasivo_no_corriente, $total_pasivos,
+                $patrimonio, $ingresos_operacionales, $utilidad_neta
+            ]);
+
+            logAudit($pdo, $userId, 'empresa.ef_save', "CompanyID: $company_id | Período: $periodo");
+            echo json_encode(['success' => true, 'message' => 'Estado financiero guardado.']);
+            break;
+
+        case 'ef_delete':
+            $ef_id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+            if (empty($ef_id)) {
+                echo json_encode(['success' => false, 'message' => 'ID no proporcionado.']);
+                exit;
+            }
+            $pdo->prepare("DELETE FROM empresa_estados_financieros WHERE id=?")->execute([$ef_id]);
+            logAudit($pdo, $userId, 'empresa.ef_delete', "EF_ID: $ef_id");
+            echo json_encode(['success' => true, 'message' => 'Estado financiero eliminado.']);
+            break;
+
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida.']);
-            break;
     }
+
 } catch (PDOException $e) {
     error_log("Error API Empresas: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Error interno del servidor en la base de datos.']);
+    echo json_encode(['success' => false, 'message' => 'Error interno del servidor.']);
 }
-?>

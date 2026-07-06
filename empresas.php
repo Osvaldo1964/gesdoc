@@ -150,6 +150,116 @@ $userRole = $userData['user_role'];
   </div>
 </div>
 
+<!-- Modal Estados Financieros -->
+<div class="modal fade" id="efModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="efModalLabel" style="color:var(--primary-blue);"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Tabla de períodos existentes -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold text-muted" style="font-size:.85rem;">PERÍODOS REGISTRADOS</span>
+          <button class="btn btn-sm btn-success" onclick="newEF()">
+            <i class="fa-solid fa-plus me-1"></i> Nuevo período
+          </button>
+        </div>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm table-bordered align-middle" style="font-size:.82rem;">
+            <thead class="table-light">
+              <tr>
+                <th>Año</th>
+                <th class="text-end">Activo Cte</th>
+                <th class="text-end">Activo No Cte</th>
+                <th class="text-end">Total Activos</th>
+                <th class="text-end">Pasivo Cte</th>
+                <th class="text-end">Pasivo No Cte</th>
+                <th class="text-end">Total Pasivos</th>
+                <th class="text-end">Patrimonio</th>
+                <th class="text-end">Ingresos Op.</th>
+                <th class="text-end">Utilidad Neta</th>
+                <th class="text-center">Acc.</th>
+              </tr>
+            </thead>
+            <tbody id="efTableBody">
+              <tr><td colspan="11" class="text-center text-muted py-3">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Formulario inline (oculto por defecto) -->
+        <div id="efFormSection" style="display:none;">
+          <hr>
+          <p class="fw-semibold mb-2" style="color:var(--primary-blue);font-size:.88rem;">
+            <i class="fa-solid fa-pen me-1"></i> INGRESO DE DATOS
+          </p>
+          <form id="efForm">
+            <input type="hidden" id="efId" name="id">
+            <div class="row g-2">
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Año *</label>
+                <input type="number" class="form-control form-control-sm" id="efPeriodo" name="periodo"
+                       min="2000" max="2099" required placeholder="2024">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Activo Corriente</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" id="efActivoCorriente" name="activo_corriente" value="0">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Activo No Corriente</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" id="efActivoNoCorriente" name="activo_no_corriente" value="0">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm fw-bold">Total Activos <small class="text-muted fw-normal">(auto)</small></label>
+                <input type="number" step="0.01" class="form-control form-control-sm fw-bold bg-light" id="efTotalActivos" name="total_activos" value="0" readonly tabindex="-1">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Pasivo Corriente</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" id="efPasivoCorriente" name="pasivo_corriente" value="0">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Pasivo No Corriente</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" id="efPasivoNoCorriente" name="pasivo_no_corriente" value="0">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm fw-bold">Total Pasivos <small class="text-muted fw-normal">(auto)</small></label>
+                <input type="number" step="0.01" class="form-control form-control-sm fw-bold bg-light" id="efTotalPasivos" name="total_pasivos" value="0" readonly tabindex="-1">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm fw-bold">Patrimonio</label>
+                <input type="number" step="0.01" class="form-control form-control-sm fw-bold" id="efPatrimonio" name="patrimonio" value="0">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Ingresos Operacionales</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" id="efIngresos" name="ingresos_operacionales" value="0">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label form-label-sm">Utilidad Neta</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" id="efUtilidad" name="utilidad_neta" value="0">
+              </div>
+              <div class="col-md-2 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                  <i class="fa-solid fa-save me-1"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="$('#efFormSection').slideUp()">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+      </div>
+      <div class="modal-footer bg-light border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="assets/js/jquery-3.7.0.min.js"></script>
 <script src="assets/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/jquery.dataTables.min.js"></script>
@@ -202,6 +312,9 @@ $(document).ready(function() {
                 className: 'text-center',
                 render: function(data, type, row) {
                     return `
+                        <button class="btn btn-sm btn-outline-success me-1" onclick='openEF(${row.id}, "${row.name.replace(/"/g,"&quot;")}")' title="Estados Financieros">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-primary me-1" onclick='editEmpresa(${JSON.stringify(row)})' title="Editar">
                             <i class="fa-solid fa-pen"></i>
                         </button>
@@ -289,6 +402,117 @@ function deleteEmpresa(id) {
         }
     });
 }
+
+// ── ESTADOS FINANCIEROS ──────────────────────────────────────────────────────
+let efCompanyId = null;
+let efCompanyName = '';
+
+function openEF(companyId, companyName) {
+    efCompanyId   = companyId;
+    efCompanyName = companyName;
+    $('#efModalLabel').html(`<i class="fa-solid fa-chart-line me-2"></i>Estados Financieros — ${companyName}`);
+    loadEF();
+    $('#efModal').modal('show');
+}
+
+function loadEF() {
+    $.get('api/empresas.php', { action: 'ef_list', company_id: efCompanyId }, function(res) {
+        const rows = res.data || [];
+        const fmt  = v => GesDocHelpers.formatCurrency(v);
+        if (!rows.length) {
+            $('#efTableBody').html('<tr><td colspan="11" class="text-center text-muted py-3">Sin registros. Agrega el primer período.</td></tr>');
+            return;
+        }
+        let html = '';
+        rows.forEach(r => {
+            html += `<tr>
+                <td class="fw-bold">${r.periodo}</td>
+                <td class="text-end">${fmt(r.activo_corriente)}</td>
+                <td class="text-end">${fmt(r.activo_no_corriente)}</td>
+                <td class="text-end fw-bold" style="color:var(--primary-blue)">${fmt(r.total_activos)}</td>
+                <td class="text-end">${fmt(r.pasivo_corriente)}</td>
+                <td class="text-end">${fmt(r.pasivo_no_corriente)}</td>
+                <td class="text-end fw-bold text-danger">${fmt(r.total_pasivos)}</td>
+                <td class="text-end fw-bold text-success">${fmt(r.patrimonio)}</td>
+                <td class="text-end">${fmt(r.ingresos_operacionales)}</td>
+                <td class="text-end">${fmt(r.utilidad_neta)}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick='editEF(${JSON.stringify(r)})' title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEF(${r.id})" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+        $('#efTableBody').html(html);
+    }, 'json');
+}
+
+function newEF() {
+    $('#efForm')[0].reset();
+    $('#efId').val('');
+    $('#efPeriodo').val(new Date().getFullYear());
+    $('#efFormSection').slideDown();
+    $('#efPeriodo').focus();
+}
+
+function editEF(r) {
+    $('#efId').val(r.id);
+    $('#efPeriodo').val(r.periodo);
+    $('#efActivoCorriente').val(r.activo_corriente);
+    $('#efActivoNoCorriente').val(r.activo_no_corriente);
+    $('#efTotalActivos').val(r.total_activos);
+    $('#efPasivoCorriente').val(r.pasivo_corriente);
+    $('#efPasivoNoCorriente').val(r.pasivo_no_corriente);
+    $('#efTotalPasivos').val(r.total_pasivos);
+    $('#efPatrimonio').val(r.patrimonio);
+    $('#efIngresos').val(r.ingresos_operacionales);
+    $('#efUtilidad').val(r.utilidad_neta);
+    $('#efFormSection').slideDown();
+    $('#efPeriodo').focus();
+}
+
+function deleteEF(id) {
+    Swal.fire({ title:'¿Eliminar este período?', icon:'warning', showCancelButton:true,
+        confirmButtonText:'Sí, eliminar', cancelButtonText:'Cancelar', confirmButtonColor:'#d33'
+    }).then(r => {
+        if (r.isConfirmed) {
+            $.post('api/empresas.php', { action:'ef_delete', id }, function(res) {
+                if (res.success) { loadEF(); Swal.fire({icon:'success',title:res.message,timer:1200,showConfirmButton:false}); }
+                else Swal.fire('Error', res.message, 'error');
+            }, 'json');
+        }
+    });
+}
+
+// ── Cálculo automático de totales ─────────────────────────────────────────
+function recalcTotales() {
+    const ac  = parseFloat($('#efActivoCorriente').val())  || 0;
+    const anc = parseFloat($('#efActivoNoCorriente').val()) || 0;
+    const pc  = parseFloat($('#efPasivoCorriente').val())  || 0;
+    const pnc = parseFloat($('#efPasivoNoCorriente').val()) || 0;
+    $('#efTotalActivos').val((ac + anc).toFixed(2));
+    $('#efTotalPasivos').val((pc + pnc).toFixed(2));
+}
+$('#efActivoCorriente, #efActivoNoCorriente').on('input', recalcTotales);
+$('#efPasivoCorriente, #efPasivoNoCorriente').on('input', recalcTotales);
+
+$(document).on('submit', '#efForm', function(e) {
+    e.preventDefault();
+    const data = $(this).serialize() + `&action=ef_save&company_id=${efCompanyId}`;
+    $.post('api/empresas.php', data, function(res) {
+        if (res.success) {
+            $('#efFormSection').slideUp();
+            $('#efForm')[0].reset();
+            loadEF();
+            Swal.fire({icon:'success', title:res.message, timer:1500, showConfirmButton:false});
+        } else {
+            Swal.fire('Error', res.message, 'error');
+        }
+    }, 'json');
+});
 </script>
 
 </body>

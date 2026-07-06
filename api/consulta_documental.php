@@ -1,11 +1,12 @@
 <?php
+// Evitar que warnings/notices/BOM contaminen la respuesta JSON
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 ob_start();
 
 require_once 'auth_helper.php';
 
-ob_clean();
+ob_clean(); // Descartar cualquier salida generada durante los includes
 header('Content-Type: application/json');
 
 $user = getValidUser();
@@ -32,18 +33,18 @@ try {
 
         // ── Búsqueda principal ─────────────────────────────────
         case 'search':
-            $keyword      = trim($_GET['keyword']  ?? '');
-            $company_id   = intval($_GET['company_id']   ?? 0);
-            $consortium_id= intval($_GET['consortium_id'] ?? 0);
-            $status       = trim($_GET['status'] ?? '');
-            $date_from    = trim($_GET['date_from'] ?? '');
-            $date_to      = trim($_GET['date_to']   ?? '');
+            $keyword       = trim($_GET['keyword']       ?? '');
+            $company_id    = intval($_GET['company_id']   ?? 0);
+            $consortium_id = intval($_GET['consortium_id'] ?? 0);
+            $status        = trim($_GET['status']    ?? '');
+            $date_from     = trim($_GET['date_from'] ?? '');
+            $date_to       = trim($_GET['date_to']   ?? '');
 
-            // ── Query base: documentos con última versión ──────
-            // La clave: si el usuario filtra por empresa, traemos documentos
-            // asociados a esa empresa directamente O a consorcios donde participa.
+            // participation_percentage como subconsulta correlacionada:
+            // evita multiplicar filas cuando el consorcio tiene varios miembros.
+            // Solo tiene valor cuando se filtra por empresa concreta.
             $sql = "
-                SELECT DISTINCT
+                SELECT
                     d.id,
                     d.name          AS doc_name,
                     d.description,
@@ -63,25 +64,30 @@ try {
                         WHEN da.entity_type = 'Company'    THEN co.nit
                         WHEN da.entity_type = 'Consortium' THEN cs.nit
                     END AS entity_nit,
-                    f.name AS folder_name,
-                    u.name AS uploaded_by,
-                    -- Participación si el vínculo es indirecto (empresa dentro de consorcio)
-                    cm.participation_percentage
+                    f.name  AS folder_name,
+                    u.name  AS uploaded_by,
+                    (
+                        SELECT cm2.participation_percentage
+                        FROM   consortium_members cm2
+                        WHERE  cm2.consortium_id = da.entity_id
+                          AND  da.entity_type    = 'Consortium'
+                          AND  cm2.company_id    = ?
+                        LIMIT 1
+                    ) AS participation_percentage
                 FROM documents d
                 JOIN document_assignments da ON da.document_id = d.id
                 LEFT JOIN document_versions dv
-                    ON dv.document_id = d.id
+                    ON  dv.document_id = d.id
                     AND dv.id = (SELECT MAX(dv2.id) FROM document_versions dv2 WHERE dv2.document_id = d.id)
                 LEFT JOIN companies   co ON da.entity_type = 'Company'    AND co.id = da.entity_id
                 LEFT JOIN consortiums cs ON da.entity_type = 'Consortium' AND cs.id = da.entity_id
-                LEFT JOIN folders     f  ON f.id = d.folder_id
-                LEFT JOIN users       u  ON u.id = dv.uploaded_by
-                LEFT JOIN consortium_members cm
-                    ON cm.consortium_id = da.entity_id AND da.entity_type = 'Consortium'
+                LEFT JOIN folders      f ON f.id  = d.folder_id
+                LEFT JOIN users        u ON u.id  = dv.uploaded_by
             ";
 
+            // El primer parámetro siempre es company_id para la subconsulta de participation_percentage
             $conditions = [];
-            $params     = [];
+            $params     = [$company_id > 0 ? $company_id : 0];
 
             // Filtro por texto libre
             if ($keyword !== '') {

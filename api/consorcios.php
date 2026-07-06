@@ -1,22 +1,12 @@
 <?php
-require_once '../config.php';
-require_once '../jwt_helper.php';
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ob_start();
 
+require_once 'auth_helper.php';
+
+ob_clean();
 header('Content-Type: application/json');
-
-function getValidUser() {
-    $headers = apache_request_headers();
-    $jwt = null;
-    if (isset($headers['Authorization'])) {
-        preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches);
-        if (isset($matches[1])) $jwt = $matches[1];
-    }
-    if (!$jwt && isset($_COOKIE['gesdoc_token'])) {
-        $jwt = $_COOKIE['gesdoc_token'];
-    }
-    if (!$jwt) return false;
-    return JWT::decode($jwt, JWT_SECRET);
-}
 
 $user = getValidUser();
 if (!$user) {
@@ -25,6 +15,7 @@ if (!$user) {
     exit;
 }
 
+$userId = (int) $user['user_id'];
 $action = $_REQUEST['action'] ?? '';
 
 try {
@@ -61,8 +52,8 @@ try {
             break;
 
         case 'create':
-            $name = strtoupper(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING));
-            $nit  = filter_input(INPUT_POST, 'nit', FILTER_SANITIZE_STRING);
+            $name    = strtoupper(trim(htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8')));
+            $nit     = trim(htmlspecialchars($_POST['nit'] ?? '', ENT_QUOTES, 'UTF-8'));
             $members = json_decode($_POST['members'] ?? '[]', true);
 
             if (empty($name)) {
@@ -82,13 +73,14 @@ try {
                 }
             }
             $pdo->commit();
+            logAudit($pdo, $userId, 'consorcio.create', "ID: $consortium_id | Nombre: $name");
             echo json_encode(['success' => true, 'message' => 'Consorcio creado exitosamente.']);
             break;
 
         case 'update':
-            $id   = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-            $name = strtoupper(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING));
-            $nit  = filter_input(INPUT_POST, 'nit', FILTER_SANITIZE_STRING);
+            $id      = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+            $name    = strtoupper(trim(htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8')));
+            $nit     = trim(htmlspecialchars($_POST['nit'] ?? '', ENT_QUOTES, 'UTF-8'));
             $members = json_decode($_POST['members'] ?? '[]', true);
 
             if (empty($id) || empty($name)) {
@@ -107,6 +99,7 @@ try {
                 }
             }
             $pdo->commit();
+            logAudit($pdo, $userId, 'consorcio.update', "ID: $id | Nombre: $name");
             echo json_encode(['success' => true, 'message' => 'Consorcio actualizado exitosamente.']);
             break;
 
@@ -117,6 +110,7 @@ try {
                 exit;
             }
             $pdo->prepare("DELETE FROM consortiums WHERE id = ?")->execute([$id]);
+            logAudit($pdo, $userId, 'consorcio.delete', "ID: $id");
             echo json_encode(['success' => true, 'message' => 'Consorcio eliminado exitosamente.']);
             break;
 
@@ -129,4 +123,3 @@ try {
     error_log("Error API Consorcios: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error interno del servidor.']);
 }
-?>

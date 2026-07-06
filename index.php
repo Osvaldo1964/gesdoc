@@ -150,17 +150,32 @@ $userRole = $userData['user_role'];
             </div>
         </div>
 
-        <!-- Módulo de Licitaciones -->
+        <!-- Módulo de Consulta Documental -->
         <div class="col-md-4 col-sm-6">
-            <div class="card h-100 module-card shadow-sm border-0" onclick="window.location.href='licitaciones.php'">
+            <div class="card h-100 module-card shadow-sm border-0" onclick="window.location.href='consulta_documental.php'">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <div class="module-icon-container me-3">
                             <i class="fa-solid fa-magnifying-glass fs-4"></i>
                         </div>
-                        <h5 class="card-title mb-0 text-dark">Licitaciones</h5>
+                        <h5 class="card-title mb-0 text-dark">Consulta Documental</h5>
                     </div>
                     <p class="card-text text-muted small">Buscador avanzado de documentos y contratos por consorcio/empresa.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo de Procesos Licitatorios -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 module-card shadow-sm border-0" onclick="window.location.href='procesos.php'">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="module-icon-container me-3">
+                            <i class="fa-solid fa-file-contract fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 text-dark">Procesos</h5>
+                    </div>
+                    <p class="card-text text-muted small">Gestión de licitaciones, análisis financiero y cotejo de indicadores.</p>
                 </div>
             </div>
         </div>
